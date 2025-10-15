@@ -264,7 +264,7 @@
         <div id="sugerencias-busqueda" class="sugerencias-busqueda"></div>
       </div>
       <button class="btn" id="centrar-btn">CENTRAR</button>
-      <button class="btn" id="afiliarse-btn" onclick="window.open('https://qrcontraentrega.com/afiliacion-colombia', '_blank')">AFILIARSE</button>
+      <button class="btn" id="afiliarse-btn">AFILIARSE</button>
     </div>
     <div id="mapa"></div>
     <div class="map-type-selector">
@@ -285,29 +285,64 @@
     let googleMapsLayer;
     let googleSatelliteLayer;
     let currentLayer;
+    let clusters;
+    let ubicacionActivada = false;
 
     // Datos de ubicaciones en Armenia (solo socios)
     const UBICACIONES = [
       { 
         "id": "1",
-        "nombre": "@hermanosdreamsco",
-        "direccion": "Carrera 19 # 15 - 25 Centro, Armenia", 
-        "latlng": [4.533889, -75.681111], 
-        "url": "https://hermanosdreamsco.qrcontraentrega.com",
-        "telefono": "+573215343562",
-        "horario": "L - V 09:00 a 17:00",
-        "servicios": "Nutrición y Belleza Productos de Omnilife y Seytú",
+        "nombre": "Almacén El Quindiano (Bronce)",
+        "direccion": "Carrera 14 #15-32, Centro, Armenia", 
+        "latlng": [4.5330, -75.6810], 
+        "url": "https://quindio.qrcontraentrega.com/almacenelquindiano",
+        "telefono": "+573001234567",
+        "horario": "L - S 07:00 a 20:00, D 08:00 a 18:00",
+        "servicios": "Abarrotes, víveres y productos de aseo",
         "tipo": "socio"
       },
       { 
         "id": "2",
-        "nombre": "@distriyox", 
-        "direccion": "Calle 20 # 18-45, Armenia", 
-        "latlng": [4.536944, -75.675278], 
-        "url": "https://distriyox.qrcontraentrega.com",
-        "telefono": "+573215343562",
-        "horario": "L - D 07:00 a 17:00",
-        "servicios": "bodega de productos importados de china",
+        "nombre": "Tienda La 19 (Bronce)", 
+        "direccion": "Calle 19 #15-45, Armenia", 
+        "latlng": [4.5375, -75.6752], 
+        "url": "https://quindio.qrcontraentrega.com/tiendala19",
+        "telefono": "+573002345678",
+        "horario": "L - D 06:00 a 22:00",
+        "servicios": "Productos básicos y alimentos",
+        "tipo": "socio"
+      },
+      { 
+        "id": "3",
+        "nombre": "Supermercado El Éxito (Bronce)", 
+        "direccion": "Avenida Bolívar #19N-45, Armenia", 
+        "latlng": [4.5412, -75.6689], 
+        "url": "https://quindio.qrcontraentrega.com/supermercadoelextio",
+        "telefono": "+573003456789",
+        "horario": "L - S 08:00 a 21:00, D 09:00 a 20:00",
+        "servicios": "Supermercado completo y domicilios",
+        "tipo": "socio"
+      },
+      { 
+        "id": "4",
+        "nombre": "Miscelánea Don Carlos (Bronce)", 
+        "direccion": "Carrera 19 #22-18, Armenia", 
+        "latlng": [4.5458, -75.6623], 
+        "url": "https://quindio.qrcontraentrega.com/miscelaneadoncarlos",
+        "telefono": "+573004567890",
+        "horario": "L - S 06:00 a 20:00",
+        "servicios": "Productos varios y artículos de primera necesidad",
+        "tipo": "socio"
+      },
+      { 
+        "id": "5",
+        "nombre": "Distribuidora Los Cafeteros (Bronce)", 
+        "direccion": "Calle 25N #18-35, Armenia", 
+        "latlng": [4.5503, -75.6571], 
+        "url": "https://quindio.qrcontraentrega.com/distribuidoraloscafeteros",
+        "telefono": "+573005678901",
+        "horario": "L - V 08:00 a 18:00, S 08:00 a 14:00",
+        "servicios": "Distribución mayorista y minorista",
         "tipo": "socio"
       }
     ];
@@ -349,13 +384,24 @@
           document.getElementById('sugerencias-busqueda').style.display = 'none';
         }
       });
+      
+      // Evento para el botón afiliarse
+      document.getElementById('afiliarse-btn').addEventListener('click', function() {
+        // Abrir en una nueva pestaña para evitar problemas con el mapa
+        window.open('https://quindio.qrcontraentrega.com/afiliacion', '_blank');
+      });
     });
 
     function initializeMap() {
+      // Limpiar mapa existente si hay uno
+      if (mapa) {
+        mapa.remove();
+      }
+      
       // Inicializar mapa
       mapa = L.map('mapa', {
-        center: [4.533889, -75.681111], // Coordenadas de Armenia
-        zoom: 13,
+        center: [4.5370, -75.6720], // Coordenadas del centro de Armenia
+        zoom: 14,
         zoomControl: false
       });
 
@@ -382,10 +428,10 @@
       // Asegurar que el mapa ocupe todo el espacio disponible
       setTimeout(() => {
         mapa.invalidateSize();
-      }, 0);
+      }, 100);
 
       // Sistema de marcadores
-      const clusters = L.markerClusterGroup({
+      clusters = L.markerClusterGroup({
         iconCreateFunction: cluster => L.divIcon({
           html: `<div>${cluster.getChildCount()}</div>`,
           className: 'cluster-marcadores',
@@ -420,7 +466,7 @@
               </div>
               <div class="popup-button-row">
                 <button class="btn" onclick="abrirGoogleMapsConDireccion('${loc.latlng[0]}', '${loc.latlng[1]}', '${loc.nombre}')">Cómo llegar</button>
-                <button class="btn" onclick="window.open('${loc.url}', '_blank')">Ver Afiliado</button>
+                <button class="btn" onclick="abrirAfiliadoEnNuevaPestana('${loc.url}')">Ver Afiliado</button>
               </div>
             </div>
           </div>
@@ -441,9 +487,11 @@
       if(marcadoresOriginales.length > 0) {
         mapa.fitBounds(clusters.getBounds().pad(0.3));
       }
+    }
 
-      // Solicitar ubicación al cargar la página
-      obtenerUbicacionUsuario();
+    // Función para abrir afiliado en nueva pestaña
+    function abrirAfiliadoEnNuevaPestana(url) {
+      window.open(url, '_blank');
     }
 
     // Función para cambiar a vista de mapa
@@ -511,22 +559,28 @@
         // Simular algunos resultados de búsqueda en Armenia
         const resultadosSimulados = [
           {
-            name: "Centro Comercial Portal del Quindío",
-            lat: 4.541389,
-            lng: -75.663056,
-            formatted_address: "Cl. 12 #19-150, Armenia, Quindío, Colombia"
+            name: "Centro Comercial Unicentro Armenia",
+            lat: 4.5501,
+            lng: -75.6612,
+            formatted_address: "Av. Bolívar #19N-50, Armenia, Quindío, Colombia"
           },
           {
             name: "Parque de la Vida",
-            lat: 4.536111,
-            lng: -75.668611,
-            formatted_address: "Cra. 14 #12N-00, Armenia, Quindío, Colombia"
+            lat: 4.5328,
+            lng: -75.6684,
+            formatted_address: "Carrera 14 #8N-00, Armenia, Quindío, Colombia"
+          },
+          {
+            name: "Museo del Oro Quimbaya",
+            lat: 4.5256,
+            lng: -75.6978,
+            formatted_address: "Av. Bolívar #40N-80, Armenia, Quindío, Colombia"
           },
           {
             name: "Terminal de Transportes de Armenia",
-            lat: 4.525556,
-            lng: -75.658611,
-            formatted_address: "Cra. 40 #22-36, Armenia, Quindío, Colombia"
+            lat: 4.5203,
+            lng: -75.6597,
+            formatted_address: "Cl. 40 #20-50, Armenia, Quindío, Colombia"
           }
         ];
         
@@ -694,13 +748,15 @@
     // Función para centrar el mapa en la ubicación actual
     function centrarMapa() {
       if (userMarker) {
+        // Si ya tenemos marcador de usuario, centrar en él
         mapa.setView(userMarker.getLatLng(), 17);
       } else {
+        // Si no tenemos marcador, obtener ubicación
         obtenerUbicacionUsuario();
       }
     }
 
-    // Función para obtener ubicación del usuario
+    // Función para obtener ubicación del usuario (SOLO CUANDO SE SOLICITA EXPLÍCITAMENTE)
     function obtenerUbicacionUsuario() {
       return new Promise((resolve, reject) => {
         if (navigator.geolocation) {
@@ -711,10 +767,10 @@
               // Verificar si está en Armenia (aproximadamente)
               const distanciaAArmenia = calcularDistancia(
                 latitude, longitude,
-                4.533889, -75.681111
+                4.5370, -75.6720
               );
               
-              if (distanciaAArmenia > 30) {
+              if (distanciaAArmenia > 15) {
                 alert('El servicio solo está disponible en Armenia y sus alrededores');
                 reject();
                 return;
@@ -737,16 +793,19 @@
                 
               // Centrar mapa en la ubicación del usuario avec zoom cercano
               mapa.setView([latitude, longitude], 17);
+              ubicacionActivada = true;
               resolve();
             },
             (error) => {
               console.log(`Error al obtener ubicación: ${error.message}`);
+              alert('No se pudo obtener tu ubicación. Asegúrate de haber permitido el acceso a la ubicación.');
               reject();
             },
-            { enableHighAccuracy: true }
+            { enableHighAccuracy: true, timeout: 10000 }
           );
         } else {
           console.log("Tu navegador no soporta geolocalización.");
+          alert('Tu navegador no soporta geolocalización.');
           reject();
         }
       });
@@ -764,6 +823,16 @@
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
     }
+    
+    // Re-inicializar el mapa cuando la página se vuelve visible (después de volver de otra pestaña)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        // Pequeño retraso para asegurar que el DOM esté listo
+        setTimeout(() => {
+          mapa.invalidateSize();
+        }, 300);
+      }
+    });
   </script>
 </body>
 </html>
